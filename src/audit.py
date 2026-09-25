@@ -4,7 +4,7 @@ import pandas as pd
 from ingestion import load_all_data
 from pprint import pprint
 
-def audit_missing(data: dict[str, pd.DataFrame]):
+def audit_missing(data: dict[str, pd.DataFrame]) -> dict[str,]:
     result = {}
 
     for name, df in data.items():
@@ -17,12 +17,15 @@ def audit_missing(data: dict[str, pd.DataFrame]):
 
     return result
 
+def audit_duplicate(data: dict[str, pd.DataFrame]) -> dict[str, int]:
+    result = {}
 
+    for name, df in data.items():
+        result[name] = int(df.duplicated().sum())
+
+    return result
 
 
 
 if __name__ == "__main__":
-    for data, descript in audit_missing(load_all_data()).items():
-        print(data)
-        pprint(descript)
-        print("-"*100)
+    print(audit_duplicate(load_all_data()))
