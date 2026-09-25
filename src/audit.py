@@ -98,36 +98,134 @@ def audit_relationship(
         "parent_key": parent_key,
         "child_table": child_name,
         "foreign_key": child_key,
-
         "parent_rows": len(parent_table),
         "child_rows": len(child_table),
-
         "parent_keys": len(parent_ids),
         "child_keys": len(child_ids),
-
         "orphan_child_keys": len(orphan_child_keys),
         "parent_without_child": len(parent_without_child),
-
         "referential_integrity": child_ids.issubset(parent_ids)
     }
 
+def audit_multivalue( data: dict[str, pd.DataFrame]) -> dict[str, dict[str, dict]]:
+    """
+    Kiểm tra các cột chứa nhiều giá trị trong cùng một cell.
+
+    Hiện tại kiểm tra:
+    - netflix_titles.listed_in
+    - netflix_titles.country
+
+    Mục đích:
+    Phát hiện các cột cần normalize/explode thành bridge table.
+    """
+    multivalue_columns = {
+        "netflix_titles": ["listed_in", "country"]
+    }
+
+    result = {}
+
+    for table_name, columns in multivalue_columns.items():
+        df = data[table_name]
+        result[table_name] = {}
+
+        for column in columns:
+            series = df[column].dropna().astype(str)
+            multi_count = int(series.str.contains(",", regex=False).sum())
+            value_counts = series.str.split(",").str.len()
+
+            result[table_name][column] = {
+                "non_null_count": int(series.count()),
+                "multivalue_rows": multi_count,
+                "single_value_rows": int((value_counts == 1).sum()),
+                "max_values_per_row": int(value_counts.max()),
+                "average_values_per_row": float(value_counts.mean())
+            }
+
+    return result
+
+def audit_date(
+    data: dict[str, pd.DataFrame]
+) -> dict[str, dict]:
+    """
+    Kiểm tra các cột ngày quan trọng.
+
+    Hiện tại tập trung vào:
+    netflix_titles.date_added
+    """
+    date_columns = {
+        "netflix_titles": ["date_added"]
+    }
+    result = {}
+
+    for table_name, columns in date_columns.items():
+        df = data[table_name]
+        result[table_name] = {}
+
+        for column in columns:
+            parsed = pd.to_datetime(df[column], errors="coerce")
+
+            result[table_name][column] = {
+                "original_dtype": str(df[column].dtype),
+                "null_count": int(df[column].isna().sum()),
+                "invalid_count": int(parsed.isna().sum() - df[column].isna().sum()),
+                "min_date": (parsed.min().strftime("%Y-%m-%d") if parsed.notna().any() else None),
+                "max_date": (parsed.max().strftime("%Y-%m-%d") if parsed.notna().any() else None)
+            }
+    return result
+
+def audit_scope(
+    data: dict[str, pd.DataFrame],
+    start_year: int = 2011,
+    end_year: int = 2020
+) -> dict:
+    """
+    Kiểm tra phạm vi dữ liệu theo date_added.
+
+    Project hiện tại:
+        2011 <= year(date_added) <= 2020
+    """
+    df = data["netflix_titles"].copy()
+
+    dates = pd.to_datetime(df["date_added"], errors="coerce")
+    years = dates.dt.year
+    in_scope = years.between(start_year, end_year)
+
+    return {
+        "scope_column": "date_added",
+        "start_year": start_year,
+        "end_year": end_year,
+        "total_rows": len(df),
+        "in_scope_rows": int(in_scope.sum()),
+        "out_of_scope_rows": int((~in_scope & years.notna()).sum()),
+        "missing_date_rows": int(years.isna().sum()),
+        "in_scope_percentage": float(in_scope.mean() * 100),
+        "out_of_scope_years": sorted(years[~in_scope & years.notna()].unique().tolist())
+    }
+
+def run_audit(data: dict[str, pd.DataFrame]) -> dict:
+    """
+    Chạy toàn bộ audit và trả về một dictionary duy nhất.
+    """
+    return {
+        "structure": audit_structure(data),
+        "duplicate": audit_duplicate(data),
+        "key": audit_key(data),
+        "relationship": {
+            "titles_credits": audit_relationship(
+                parent_table=data["titles"],
+                child_table=data["credits"],
+                parent_name="titles",
+                child_name="credits",
+                parent_key="id",
+                child_key="id"
+            )
+        },
+        "multivalue": audit_multivalue(data),
+        "date": audit_date(data),
+        "scope": audit_scope(data)
+    }
+
 if __name__ == "__main__":
-    for name, descript in audit_key(load_all_data()).items():
-        print(name)
-        pprint(descript)
-        print("-"*100)
-
     data = load_all_data()
-    print(f"các cột của credits:\n{data["credits"].columns.tolist()}")
-    print("-"*100)
-    print(f"20 dòng đầu của credits:\n{data["credits"].head(20).to_string()}")
-    print("-"*100)
-    print(f"thông tin chung về credits:\n{data["credits"].info()}")
-    print("-"*100)
-    print(data["credits"].groupby("id").agg(times=("id", "count")).reset_index())
-    print("-"*100)
-
-    pprint(audit_relationship(data["titles"], data["credits"]))
-    print("-"*100)
-    print(f"5 dòng đầu của bảng credits:\n{data["credits"].head()}")
-    print("-"*100)
+    audit_result = run_audit(data)
+    pprint(audit_result)
