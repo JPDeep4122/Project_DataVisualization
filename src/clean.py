@@ -1,0 +1,107 @@
+import pandas as pd
+from ingestion import load_all_data
+
+def clean_text_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Chuẩn hóa các cột dạng text:
+    - Loại bỏ khoảng trắng đầu/cuối
+    - Chuyển chuỗi rỗng thành NaN
+    """
+    df = df.copy()
+    text_columns = df.select_dtypes(include='str').columns
+
+    for column in text_columns:
+        df[column] = df[column].str.strip()
+        df[column] = df[column].replace('', pd.NA)
+
+    return df
+
+def clean_date_added(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Chuyển date_added sang kiểu datetime.
+
+    Các giá trị không hợp lệ sẽ trở thành NaT.
+    Không tự suy đoán ngày bị thiếu.
+    """
+    df = df.copy()
+    if ('date_added' not in df.keys()):
+        return "data doesn't contain date_added column"
+    
+    df['date_added'] = pd.to_datetime(df['date_added'], errors='coerce')
+    
+    return df
+
+def clean_release_year(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Chuẩn hóa release_year về kiểu số nguyên nullable.
+    """
+    df = df.copy()
+    if ('release_year' not in df.keys()):
+        return "data doesn't contain release_year column"
+
+    df['release_year'] = pd.to_numeric(df['release_year'], errors='coerce').astype('Int64')
+
+    return df
+
+def clean_netflix_titles(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Làm sạch netflix_titles.csv
+    """
+    df = df.copy()
+    
+    df = clean_text_columns(df)
+    df = clean_date_added(df)
+    df = clean_release_year(df)
+
+    return df
+
+def clean_titles(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Làm sạch titles.csv
+    """
+    df = df.copy()
+
+    df = clean_text_columns(df)
+
+    return df
+
+def clean_credits(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Cleaning cho credits.csv.
+
+    Lưu ý:
+    credits.id là FK tham chiếu đến titles.id,
+    không phải khóa chính.
+    """
+
+    df = df.copy()
+
+    df = clean_text_columns(df)
+
+    return df
+
+
+def clean_all_data(data: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
+    """
+    Chạy cleaning cho toàn bộ dataset.
+    """
+
+    cleaned_data = {
+        "netflix_titles": clean_netflix_titles(
+            data["netflix_titles"]
+        ),
+
+        "titles": clean_titles(
+            data["titles"]
+        ),
+
+        "credits": clean_credits(
+            data["credits"]
+        )
+    }
+
+    return cleaned_data
+
+if __name__ == '__main__':
+    data = load_all_data()
+    print(clean_all_data(data))
