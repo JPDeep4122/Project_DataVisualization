@@ -228,4 +228,7 @@ def run_audit(data: dict[str, pd.DataFrame]) -> dict:
 if __name__ == "__main__":
     data = load_all_data()
     audit_result = run_audit(data)
-    pprint(audit_result)
+    for name, result in audit_result.items():
+        print(name)
+        pprint(result)
+        print('-'*100)
