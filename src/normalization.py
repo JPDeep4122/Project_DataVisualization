@@ -4,10 +4,11 @@ Chi tiết thiết kế, quan hệ và quy trình: docs/03_data_normalization.md
 """
 from pathlib import Path
 from typing import Any
+from functools import lru_cache
 import pandas as pd
 import pycountry
 
-from config import PROCESSED_DATA_DIR, NORMALIZED_DATA_DIR, START_YEAR, END_YEAR
+from config import PROCESSED_DATA_DIR, NORMALIZED_DATA_DIR, START_YEAR, END_YEAR, COUNTRY_CODE_OVERRIDE
 
 
 def create_dim_date(
@@ -78,16 +79,29 @@ def create_bridge_genre(df: pd.DataFrame) -> pd.DataFrame:
     ].drop_duplicates().reset_index(drop=True)
 
 
+@lru_cache(maxsize=256)
 def get_country_code(country: str | None) -> str | Any:
-    """Chuyển tên quốc gia sang mã ISO 3166-1 alpha-3."""
+    """
+    Chuyển tên quốc gia sang mã ISO 3166-1 alpha-3 phục vụ biểu đồ bản đồ.
+    Sử dụng chiến lược Hybrid: Override Dict -> Exact Lookup -> Fuzzy Search.
+    """
     if pd.isna(country) or not str(country).strip():
         return pd.NA
+
     country_str = str(country).strip()
+
+    if country_str in COUNTRY_CODE_OVERRIDE:
+        return COUNTRY_CODE_OVERRIDE[country_str]
+
     try:
-        result = pycountry.countries.lookup(country_str)
-        return result.alpha_3
+        return pycountry.countries.lookup(country_str).alpha_3
     except LookupError:
-        return pd.NA   
+        pass
+
+    try:
+        return pycountry.countries.search_fuzzy(country_str)[0].alpha_3
+    except Exception:
+        return pd.NA
 
 
 def create_bridge_country(df: pd.DataFrame) -> pd.DataFrame:

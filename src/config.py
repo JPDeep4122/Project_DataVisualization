@@ -14,3 +14,17 @@ DATABASE_PATH: Path = NETFLIX_DATABASE
 
 START_YEAR: int = 2011
 END_YEAR: int = 2020
+
+# Bảng ánh xạ thủ công cho các quốc gia lịch sử và các tên gọi thông dụng
+COUNTRY_CODE_OVERRIDE: dict[str, str] = {
+    # 1. Quốc gia lịch sử -> map về vùng lãnh thổ hiện tại để vẽ bản đồ
+    "West Germany": "DEU",   # Đức
+    "East Germany": "DEU",   # Đức
+    "Soviet Union": "RUS",   # Nga
+
+    # 2. Tên thông dụng khác với tên chuẩn ISO 3166-1
+    "Turkey": "TUR",         # ISO: Türkiye
+    "Russia": "RUS",         # ISO: Russian Federation
+    "Palestine": "PSE",      # ISO: Palestine, State of
+    "Vatican City": "VAT",   # ISO: Holy See (Vatican City State)
+}
