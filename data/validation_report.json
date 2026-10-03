@@ -1,0 +1,26 @@
+{
+  "status": "PASS",
+  "errors": [],
+  "tables": {
+    "dim_date": {
+      "rows": 3653,
+      "columns": 7
+    },
+    "dim_title": {
+      "rows": 7294,
+      "columns": 9
+    },
+    "bridge_genre": {
+      "rows": 16026,
+      "columns": 2
+    },
+    "bridge_country": {
+      "rows": 8528,
+      "columns": 3
+    },
+    "fact_monthly_addition": {
+      "rows": 120,
+      "columns": 3
+    }
+  }
+}

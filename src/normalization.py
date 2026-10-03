@@ -3,11 +3,17 @@
 Chi tiết thiết kế, quan hệ và quy trình: docs/03_data_normalization.md
 """
 from pathlib import Path
+from typing import Any
 import pandas as pd
+import pycountry
+
 from config import PROCESSED_DATA_DIR, NORMALIZED_DATA_DIR, START_YEAR, END_YEAR
 
 
-def create_dim_date(start_year=START_YEAR, end_year=END_YEAR):
+def create_dim_date(
+    start_year: int = START_YEAR,
+    end_year: int = END_YEAR
+) -> pd.DataFrame:
     """Tạo bảng dim_date cho toàn bộ phạm vi phân tích."""
     dates = pd.date_range(f"{start_year}-01-01", f"{end_year}-12-31", freq="D")
     return pd.DataFrame({
@@ -21,7 +27,11 @@ def create_dim_date(start_year=START_YEAR, end_year=END_YEAR):
     })
 
 
-def create_dim_title(df, start_year=START_YEAR, end_year=END_YEAR):
+def create_dim_title(
+    df: pd.DataFrame,
+    start_year: int = START_YEAR,
+    end_year: int = END_YEAR
+) -> pd.DataFrame:
     """Tạo dim_title và chỉ giữ title thuộc phạm vi nghiên cứu."""
     dates = pd.to_datetime(df["date_added"], errors="coerce")
     mask = dates.dt.year.between(start_year, end_year)
@@ -39,7 +49,11 @@ def create_dim_title(df, start_year=START_YEAR, end_year=END_YEAR):
     }).reset_index(drop=True)
 
 
-def create_fact_monthly_addition(dim_title, start_year=START_YEAR, end_year=END_YEAR):
+def create_fact_monthly_addition(
+    dim_title: pd.DataFrame,
+    start_year: int = START_YEAR,
+    end_year: int = END_YEAR
+) -> pd.DataFrame:
     """Tạo bảng số title được thêm theo từng tháng."""
     dates = pd.to_datetime(dim_title["date_added"], errors="coerce").dropna()
     counts = dates.dt.to_period("M").value_counts().sort_index()
@@ -52,25 +66,46 @@ def create_fact_monthly_addition(dim_title, start_year=START_YEAR, end_year=END_
     return result[["date_key", "monthly_additions", "month_index"]]
 
 
-def create_bridge_genre(df):
+def create_bridge_genre(df: pd.DataFrame) -> pd.DataFrame:
     """Tách listed_in thành các cặp show_id - genre."""
     result = df[["show_id", "listed_in"]].copy()
     result["genre"] = result["listed_in"].fillna("").astype(str).str.split(",")
     result = result.explode("genre")
     result["genre"] = result["genre"].str.strip()
-    return result.loc[result["genre"].notna() & (result["genre"] != ""), ["show_id", "genre"]].drop_duplicates().reset_index(drop=True)
+    return result.loc[
+        result["genre"].notna() & (result["genre"] != ""),
+        ["show_id", "genre"]
+    ].drop_duplicates().reset_index(drop=True)
 
 
-def create_bridge_country(df):
+def get_country_code(country: str | None) -> str | Any:
+    """Chuyển tên quốc gia sang mã ISO 3166-1 alpha-3."""
+    if pd.isna(country) or not str(country).strip():
+        return pd.NA
+    country_str = str(country).strip()
+    try:
+        result = pycountry.countries.lookup(country_str)
+        return result.alpha_3
+    except LookupError:
+        return pd.NA   
+
+
+def create_bridge_country(df: pd.DataFrame) -> pd.DataFrame:
     """Tách country thành các cặp show_id - country."""
     result = df[["show_id", "country"]].copy()
     result["country"] = result["country"].fillna("").astype(str).str.split(",")
     result = result.explode("country")
     result["country"] = result["country"].str.strip()
-    return result.loc[result["country"].notna() & (result["country"] != ""), ["show_id", "country"]].drop_duplicates().reset_index(drop=True)
+    result = result.loc[result["country"].notna() & (result["country"] != "")]
+    result["country_code"] = result["country"].apply(get_country_code)
+    return result[["show_id", "country", "country_code"]].drop_duplicates().reset_index(drop=True)
 
 
-def normalize_data(df, start_year=START_YEAR, end_year=END_YEAR):
+def normalize_data(
+    df: pd.DataFrame,
+    start_year: int = START_YEAR,
+    end_year: int = END_YEAR
+) -> dict[str, pd.DataFrame]:
     """Tạo toàn bộ 5 bảng chuẩn hóa."""
     dim_date = create_dim_date(start_year, end_year)
     dim_title = create_dim_title(df, start_year, end_year)
@@ -84,22 +119,50 @@ def normalize_data(df, start_year=START_YEAR, end_year=END_YEAR):
     }
 
 
-def validate_normalized_data(data):
+def validate_normalized_data(
+    data: dict[str, pd.DataFrame]
+) -> dict[str, dict[str, int]]:
     """Kiểm tra khóa chính, khóa ngoại và bản ghi trùng."""
     dim_date, dim_title = data["dim_date"], data["dim_title"]
     fact, genre, country = data["fact_monthly_addition"], data["bridge_genre"], data["bridge_country"]
     valid_dates = set(dim_date["date_key"].dropna())
     valid_titles = set(dim_title["show_id"].dropna())
     return {
-        "dim_date": {"rows": len(dim_date), "duplicate_date_key": int(dim_date["date_key"].duplicated().sum()), "null_date_key": int(dim_date["date_key"].isna().sum())},
-        "dim_title": {"rows": len(dim_title), "duplicate_show_id": int(dim_title["show_id"].duplicated().sum()), "null_show_id": int(dim_title["show_id"].isna().sum()), "orphan_date_key": len(set(dim_title["date_key"].dropna()) - valid_dates)},
-        "fact_monthly_addition": {"rows": len(fact), "duplicate_date_key": int(fact["date_key"].duplicated().sum()), "null_date_key": int(fact["date_key"].isna().sum()), "orphan_date_key": len(set(fact["date_key"].dropna()) - valid_dates), "total_additions": int(fact["monthly_additions"].sum())},
-        "bridge_genre": {"rows": len(genre), "orphan_show_id": len(set(genre["show_id"].dropna()) - valid_titles), "duplicate_pairs": int(genre.duplicated(["show_id", "genre"]).sum())},
-        "bridge_country": {"rows": len(country), "orphan_show_id": len(set(country["show_id"].dropna()) - valid_titles), "duplicate_pairs": int(country.duplicated(["show_id", "country"]).sum())},
+        "dim_date": {
+            "rows": len(dim_date),
+            "duplicate_date_key": int(dim_date["date_key"].duplicated().sum()),
+            "null_date_key": int(dim_date["date_key"].isna().sum())
+        },
+        "dim_title": {
+            "rows": len(dim_title),
+            "duplicate_show_id": int(dim_title["show_id"].duplicated().sum()),
+            "null_show_id": int(dim_title["show_id"].isna().sum()),
+            "orphan_date_key": len(set(dim_title["date_key"].dropna()) - valid_dates)
+        },
+        "fact_monthly_addition": {
+            "rows": len(fact),
+            "duplicate_date_key": int(fact["date_key"].duplicated().sum()),
+            "null_date_key": int(fact["date_key"].isna().sum()),
+            "orphan_date_key": len(set(fact["date_key"].dropna()) - valid_dates),
+            "total_additions": int(fact["monthly_additions"].sum())
+        },
+        "bridge_genre": {
+            "rows": len(genre),
+            "orphan_show_id": len(set(genre["show_id"].dropna()) - valid_titles),
+            "duplicate_pairs": int(genre.duplicated(["show_id", "genre"]).sum())
+        },
+        "bridge_country": {
+            "rows": len(country),
+            "orphan_show_id": len(set(country["show_id"].dropna()) - valid_titles),
+            "duplicate_pairs": int(country.duplicated(["show_id", "country"]).sum())
+        },
     }
 
 
-def save_normalized_data(data, output_dir=NORMALIZED_DATA_DIR):
+def save_normalized_data(
+    data: dict[str, pd.DataFrame],
+    output_dir: str | Path = NORMALIZED_DATA_DIR
+) -> None:
     """Lưu 5 bảng chuẩn hóa thành các file CSV."""
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
@@ -109,7 +172,10 @@ def save_normalized_data(data, output_dir=NORMALIZED_DATA_DIR):
         print(f"Đã lưu: {path}")
 
 
-def print_normalization_summary(data, validation):
+def print_normalization_summary(
+    data: dict[str, pd.DataFrame],
+    validation: dict[str, dict[str, int]]
+) -> None:
     """In tóm tắt kích thước bảng và kết quả kiểm tra."""
     print("\n" + "=" * 50 + "\nTỔNG QUAN CHUẨN HÓA\n" + "=" * 50)
     for name, df in data.items():
@@ -121,7 +187,7 @@ def print_normalization_summary(data, validation):
             print(f"  {name:<25}: {value}")
 
 
-def main():
+def main() -> None:
     """Đọc dữ liệu sạch, chuẩn hóa, kiểm tra và lưu kết quả."""
     input_file = PROCESSED_DATA_DIR / "netflix_titles.csv"
     df = pd.read_csv(input_file)

@@ -162,7 +162,7 @@ def cleaning_summary(
 
 def save_cleaned_data(
     cleaned_data: dict[str, pd.DataFrame],
-    output_dir: str = "data/processed"
+    output_dir: str | Path = "data/processed"
 ) -> None:
 
     output_path = Path(output_dir)
