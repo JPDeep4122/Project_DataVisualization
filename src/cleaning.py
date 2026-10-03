@@ -1,3 +1,4 @@
+from pathlib import Path
 import pandas as pd
 from ingestion import load_all_data
 
@@ -16,6 +17,7 @@ def clean_text_columns(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
+
 def clean_date_added(df: pd.DataFrame) -> pd.DataFrame:
     """
     Chuyển date_added sang kiểu datetime.
@@ -31,6 +33,31 @@ def clean_date_added(df: pd.DataFrame) -> pd.DataFrame:
     
     return df
 
+def clean_duration(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Chuẩn hóa duration thành dạng số nguyên, bỏ các hậu tố min và seasons
+    Thêm 2 trường duration_minutes và duration_seasons và gắn các giá trị phù hợp 
+    theo từng type "Movie" và "TV Show" vào 
+    """
+    df = df.copy()
+
+    duration_value = df['duration'].astype("string").str.extract(r"(\d+)", expand=False)
+    duration_value = pd.to_numeric(duration_value, errors="coerce").astype("Int64")
+
+    df["duration_minutes"] = pd.NA
+    df["duration_seasons"] = pd.NA
+
+    movie_mask = df["type"].eq("Movie")
+    tv_mask = df["type"].eq("TV Show")
+
+    df.loc[movie_mask, "duration_minutes"] = duration_value[movie_mask]
+    df.loc[tv_mask, "duration_seasons"] = duration_value[tv_mask]
+
+    df["duration_minutes"] = df["duration_minutes"].astype("Int64")
+    df["duration_seasons"] = df["duration_seasons"].astype("Int64")
+
+    return df
+
 def clean_release_year(df: pd.DataFrame) -> pd.DataFrame:
     """
     Chuẩn hóa release_year về kiểu số nguyên nullable.
@@ -43,6 +70,7 @@ def clean_release_year(df: pd.DataFrame) -> pd.DataFrame:
 
     return df
 
+
 def clean_netflix_titles(df: pd.DataFrame) -> pd.DataFrame:
     """
     Làm sạch netflix_titles.csv
@@ -51,9 +79,11 @@ def clean_netflix_titles(df: pd.DataFrame) -> pd.DataFrame:
     
     df = clean_text_columns(df)
     df = clean_date_added(df)
+    df = clean_duration(df)
     df = clean_release_year(df)
 
     return df
+
 
 def clean_titles(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -64,6 +94,7 @@ def clean_titles(df: pd.DataFrame) -> pd.DataFrame:
     df = clean_text_columns(df)
 
     return df
+
 
 def clean_credits(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -102,6 +133,72 @@ def clean_all_data(data: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
 
     return cleaned_data
 
-if __name__ == '__main__':
+
+def cleaning_summary(
+    before: dict[str, pd.DataFrame],
+    after: dict[str, pd.DataFrame]
+) -> pd.DataFrame:
+
+    records = []
+
+    for name in before:
+
+        before_df = before[name]
+        after_df = after[name]
+
+        records.append({
+            "table": name,
+            "rows_before": len(before_df),
+            "rows_after": len(after_df),
+            "columns_before": len(before_df.columns),
+            "columns_after": len(after_df.columns),
+            "rows_removed": (
+                len(before_df) - len(after_df)
+            )
+        })
+
+    return pd.DataFrame(records)
+
+
+def save_cleaned_data(
+    cleaned_data: dict[str, pd.DataFrame],
+    output_dir: str | Path = "data/processed"
+) -> None:
+
+    output_path = Path(output_dir)
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    for name, df in cleaned_data.items():
+        file_path = (
+            output_path /
+            f"{name}.csv"
+        )
+
+        df.to_csv(
+            file_path,
+            index=False,
+            encoding="utf-8-sig"
+        )
+
+        print(f"Saved: {file_path}")
+
+
+if __name__ == "__main__":
+
+    # Load raw data
     data = load_all_data()
-    print(clean_all_data(data))
+
+    # Cleaning
+    cleaned_data = clean_all_data(data)
+
+    # Summary
+    summary = cleaning_summary(
+        data,
+        cleaned_data
+    )
+
+    print("\n=== CLEANING SUMMARY ===")
+    print(summary.to_string(index=False))
+
+    # Save
+    save_cleaned_data(cleaned_data)

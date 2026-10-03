@@ -1,3 +1,4 @@
+from typing import Any
 from config import RAW_DATA_DIR
 import pandas as pd
 
@@ -71,7 +72,7 @@ def audit_relationship(
     child_name: str,
     parent_key: str,
     child_key: str
-) -> dict:
+) -> dict[str, Any]:
     """
     Kiểm tra quan hệ giữa bảng cha và bảng con.
 
@@ -177,7 +178,7 @@ def audit_scope(
     data: dict[str, pd.DataFrame],
     start_year: int = 2011,
     end_year: int = 2020
-) -> dict:
+) -> dict[str, Any]:
     """
     Kiểm tra phạm vi dữ liệu theo date_added.
 
@@ -202,7 +203,7 @@ def audit_scope(
         "out_of_scope_years": sorted(years[~in_scope & years.notna()].unique().tolist())
     }
 
-def run_audit(data: dict[str, pd.DataFrame]) -> dict:
+def run_audit(data: dict[str, pd.DataFrame]) -> dict[str, Any]:
     """
     Chạy toàn bộ audit và trả về một dictionary duy nhất.
     """
