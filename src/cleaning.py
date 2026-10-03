@@ -33,6 +33,30 @@ def clean_date_added(df: pd.DataFrame) -> pd.DataFrame:
     
     return df
 
+def clean_duration(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Chuẩn hóa duration thành dạng số nguyên, bỏ các hậu tố min và seasons
+    Thêm 2 trường duration_minutes và duration_seasons và gắn các giá trị phù hợp 
+    theo từng type "Movie" và "TV Show" vào 
+    """
+    df = df.copy()
+
+    duration_value = df['duration'].astype("string").str.extract(r"(\d+)", expand=False)
+    duration_value = pd.to_numeric(duration_value, errors="coerce").astype("Int64")
+
+    df["duration_minutes"] = pd.NA
+    df["duration_seasons"] = pd.NA
+
+    movie_mask = df["type"].eq("Movie")
+    tv_mask = df["type"].eq("TV Show")
+
+    df.loc[movie_mask, "duration_minutes"] = duration_value[movie_mask]
+    df.loc[tv_mask, "duration_seasons"] = duration_value[tv_mask]
+
+    df["duration_minutes"] = df["duration_minutes"].astype("Int64")
+    df["duration_seasons"] = df["duration_seasons"].astype("Int64")
+
+    return df
 
 def clean_release_year(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -55,6 +79,7 @@ def clean_netflix_titles(df: pd.DataFrame) -> pd.DataFrame:
     
     df = clean_text_columns(df)
     df = clean_date_added(df)
+    df = clean_duration(df)
     df = clean_release_year(df)
 
     return df
@@ -146,7 +171,7 @@ def save_cleaned_data(
     for name, df in cleaned_data.items():
         file_path = (
             output_path /
-            f"{name}_clean.csv"
+            f"{name}.csv"
         )
 
         df.to_csv(
