@@ -18,6 +18,14 @@
       "rows": 8528,
       "columns": 3
     },
+    "bridge_director": {
+      "rows": 5827,
+      "columns": 2
+    },
+    "bridge_actor": {
+      "rows": 51955,
+      "columns": 2
+    },
     "fact_monthly_addition": {
       "rows": 120,
       "columns": 3

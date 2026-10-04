@@ -27,6 +27,8 @@ TABLES: dict[str, list[str]] = {
     ],
     "bridge_genre": ["show_id", "genre"],
     "bridge_country": ["show_id", "country"],
+    "bridge_director": ["show_id", "director"],
+    "bridge_actor": ["show_id", "actor"],
     "fact_monthly_addition": [
         "date_key", "monthly_additions", "month_index"
     ],
@@ -36,7 +38,7 @@ TABLES: dict[str, list[str]] = {
 def load_normalized_data(
     input_dir: str | Path = NORMALIZED_DATA_DIR
 ) -> dict[str, pd.DataFrame]:
-    """Đọc 5 bảng CSV chuẩn hóa."""
+    """Đọc 7 bảng CSV chuẩn hóa."""
     input_path = Path(input_dir)
     return {
         name: pd.read_csv(input_path / f"{name}.csv")
@@ -98,6 +100,8 @@ def validate_foreign_keys(data: dict[str, pd.DataFrame]) -> list[str]:
         ("fact_monthly_addition", "date_key", valid_dates),
         ("bridge_genre", "show_id", valid_titles),
         ("bridge_country", "show_id", valid_titles),
+        ("bridge_director", "show_id", valid_titles),
+        ("bridge_actor", "show_id", valid_titles)
     ]
 
     errors: list[str] = []
