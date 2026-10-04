@@ -1,2 +1,7 @@
 pandas
 pycountry
+matplotlib
+seaborn
+jupyter
+nbformat
+nbclient
