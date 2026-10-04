@@ -114,13 +114,34 @@ def create_bridge_country(df: pd.DataFrame) -> pd.DataFrame:
     result["country_code"] = result["country"].apply(get_country_code)
     return result[["show_id", "country", "country_code"]].drop_duplicates().reset_index(drop=True)
 
+def create_bridge_director(df: pd.DataFrame) -> pd.DataFrame:
+    """Tách director thành các cặp show_id - director"""
+    result = df[["show_id", "director"]].copy()
+    result["director"] = result["director"].fillna("").astype(str).str.split(",")
+    result = result.explode("director")
+    result["director"] = result["director"].str.strip()
+    return result.loc[
+        result["director"].notna() & (result["director"] != ""),
+        ["show_id", "director"]
+    ].drop_duplicates().reset_index(drop=True)
+
+def create_bridge_actor(df: pd.DataFrame) -> pd.DataFrame:
+    """Tách cast thành các cặp show_id - cast"""
+    result = df[["show_id", "cast"]].copy()
+    result["actor"] = result["cast"].fillna("").astype(str).str.split(",")
+    result = result.explode("actor")
+    result["actor"] = result["actor"].str.strip()
+    return result.loc[
+        result["actor"].notna() & (result["actor"] != ""),
+        ["show_id", "actor"]
+    ].drop_duplicates().reset_index(drop=True)
 
 def normalize_data(
     df: pd.DataFrame,
     start_year: int = START_YEAR,
     end_year: int = END_YEAR
 ) -> dict[str, pd.DataFrame]:
-    """Tạo toàn bộ 5 bảng chuẩn hóa."""
+    """Tạo toàn bộ 7 bảng chuẩn hóa."""
     dim_date = create_dim_date(start_year, end_year)
     dim_title = create_dim_title(df, start_year, end_year)
     scoped_df = df[df["show_id"].isin(dim_title["show_id"])]
@@ -129,6 +150,8 @@ def normalize_data(
         "dim_title": dim_title,
         "bridge_genre": create_bridge_genre(scoped_df),
         "bridge_country": create_bridge_country(scoped_df),
+        "bridge_director": create_bridge_director(scoped_df),
+        "bridge_actor": create_bridge_actor(scoped_df),
         "fact_monthly_addition": create_fact_monthly_addition(dim_title, start_year, end_year),
     }
 
@@ -170,6 +193,16 @@ def validate_normalized_data(
             "orphan_show_id": len(set(country["show_id"].dropna()) - valid_titles),
             "duplicate_pairs": int(country.duplicated(["show_id", "country"]).sum())
         },
+        "bridge_director": {
+            "rows": len(country),
+            "orphan_show_id": len(set(country["show_id"].dropna()) - valid_titles),
+            "duplicate_pairs": int(country.duplicated(["show_id", "country"]).sum())
+        },
+        "bridge_actor": {
+            "rows": len(country),
+            "orphan_show_id": len(set(country["show_id"].dropna()) - valid_titles),
+            "duplicate_pairs": int(country.duplicated(["show_id", "country"]).sum())
+        },
     }
 
 
@@ -177,7 +210,7 @@ def save_normalized_data(
     data: dict[str, pd.DataFrame],
     output_dir: str | Path = NORMALIZED_DATA_DIR
 ) -> None:
-    """Lưu 5 bảng chuẩn hóa thành các file CSV."""
+    """Lưu 7 bảng chuẩn hóa thành các file CSV."""
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
     for name, df in data.items():
