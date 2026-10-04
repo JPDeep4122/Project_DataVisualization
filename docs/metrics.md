@@ -23,6 +23,7 @@
 | Content type count | `COUNT DISTINCT show_id` theo `type` | Movie / TV Show | Tổng hai nhóm bằng Total titles |
 | Content type share | Content type count / Total titles | Movie / TV Show | Tỷ lệ toàn giai đoạn |
 | Content type share by year | Type count trong năm / Annual additions của năm | Năm × type | Dùng cho 100% stacked chart |
+| Content type count by year | `COUNT DISTINCT show_id` theo năm và `type` | Năm × type | Dùng để phân rã nhóm đóng góp vào xu hướng tăng/giảm |
 | Genre title count | `COUNT DISTINCT show_id` theo `bridge_genre.genre` | Genre | Một title có nhiều genre |
 | Genre penetration | Genre title count / Total titles | Genre | Các tỷ lệ không cộng thành 100% |
 | Country title count | `COUNT DISTINCT show_id` theo `bridge_country.country` | Country | Một title có nhiều country |
@@ -41,11 +42,31 @@
 4. `SUM(fact_monthly_addition.monthly_additions)` phải bằng Total titles.
 5. Tỷ lệ rating loại null khỏi denominator và phải công bố số null.
 
-## 4. Metric cho model (bước kế tiếp)
+## 4. Thiết kế và kết quả model
 
 - Target: `monthly_additions`.
 - Feature MVP: `month_index` từ 0 đến 119.
 - Train: tháng thuộc 2011–2019.
 - Test: tháng thuộc 2020.
-- Evaluation: MAE, RMSE và R².
+- Evaluation: MAE, RMSE và R² trên tập test.
 - Forecast horizon: 12 tháng sau 31/12/2020; đây là ngoại suy, không phải actual 2021.
+
+### Kết quả trên tập test năm 2020
+
+| Metric | Giá trị | Diễn giải |
+|---|---:|---|
+| MAE | 16,7361 | Sai số tuyệt đối trung bình khoảng 17 title/tháng |
+| RMSE | 23,7119 | Một số tháng có sai số lớn hơn mức trung bình |
+| R² | -0,0828 | Mô hình chưa mô tả tốt biến động theo tháng trong năm 2020 |
+
+Mô hình train trên 2011–2019 có phương trình:
+
+`monthly_additions = -47,4062 + 1,8233 × month_index`
+
+Sau khi đánh giá, mô hình được fit lại trên toàn bộ 120 tháng để tạo forecast:
+
+`monthly_additions = -46,8105 + 1,8083 × month_index`
+
+Forecast tăng từ khoảng **170 title trong tháng 01/2021** lên khoảng **190 title
+trong tháng 12/2021**. Đây là đường ngoại suy xu hướng, không phải số liệu thực tế
+của năm 2021 hay dự báo chính thức của Netflix.
