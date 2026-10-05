@@ -1,5 +1,5 @@
 """
-Kiểm tra tính toàn vẹn của 5 bảng dữ liệu chuẩn hóa trước khi đưa vào SQLite.
+Kiểm tra tính toàn vẹn của 7 bảng dữ liệu chuẩn hóa trước khi đưa vào SQLite.
 
 Thiết kế:
 - Kiểm tra cấu trúc/cột bắt buộc
