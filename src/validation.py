@@ -1,5 +1,5 @@
 """
-Kiểm tra tính toàn vẹn của 5 bảng dữ liệu chuẩn hóa trước khi đưa vào SQLite.
+Kiểm tra tính toàn vẹn của 7 bảng dữ liệu chuẩn hóa trước khi đưa vào SQLite.
 
 Thiết kế:
 - Kiểm tra cấu trúc/cột bắt buộc
@@ -10,6 +10,7 @@ Thiết kế:
 """
 from pathlib import Path
 from typing import Any
+from pprint import pprint
 import json
 import pandas as pd
 
@@ -240,7 +241,8 @@ def main() -> None:
             f"{info['columns']:>2} cột"
         )
 
-    print(f"\nKết quả: {report['status']}")
+    print(f"\nKết quả: ")
+    pprint(report)
 
     if report["errors"]:
         print("\nLỖI:")
