@@ -1,768 +1,208 @@
-# Netflix IDV – Phân tích xu hướng phim và TV Show trên Netflix 2011–2020
+﻿# Netflix IDV — Phân tích catalog Netflix giai đoạn 2011–2020
 
-## 1. Mục tiêu đề tài
+> Dự án phân tích dữ liệu và trực quan hóa nhằm mô tả cách catalog Netflix thay đổi theo thời gian: số lượng nội dung được thêm vào, cơ cấu Movie/TV Show, thể loại, quốc gia liên quan, phân loại độ tuổi và xu hướng bổ sung theo tháng.
 
-Đây là đồ án môn **Tương tác dữ liệu trực quan (Interactive Data Visualization – IDV)** của nhóm 3 người.
+Repository này cung cấp một pipeline Python có thể chạy lại, dữ liệu đã được chuẩn hóa trong mô hình quan hệ, cơ sở dữ liệu SQLite, notebook phân tích và dashboard Power BI.
 
-> **Phân tích xu hướng nội dung phim và TV Show trên nền tảng Netflix giai đoạn 2011–2020**
+## Tổng quan nhanh
 
-Nhóm chọn **đúng 10 năm dương lịch đầy đủ từ đầu 2011 đến hết 2020**. Việc bỏ 2021 giúp timeline tròn 10 năm và tránh phải xử lý năm 2021 bị thiếu dữ liệu.
+- **Đối tượng phân tích:** các title Netflix có date_added trong khoảng **01/01/2011–31/12/2020**.
+- **Mốc thời gian chính:** date_added — thời điểm title được thêm vào catalog; không phải release_year.
+- **Quy mô dữ liệu sau chuẩn hóa:** 7.294 title trong 120 tháng liên tiếp.
+- **Nguồn chính:** data/raw/netflix_titles.csv.
+- **Đầu ra chính:** các bảng CSV chuẩn hóa, database/netflix.db, kết quả mô hình trong data/model_outputs/ và dashboard dashboard/Dashboard_Custom.pbix.
 
-Mục tiêu:
+## Dự án trả lời những câu hỏi nào?
 
-```text
-Dữ liệu thô → Audit → Cleaning → Phân hoạch dữ liệu
-→ JOIN/Merge → EDA → Dashboard → Insight
-→ Linear Regression + Forecast → Report/Demo
-```
+1. Số title được thêm vào Netflix thay đổi như thế nào qua từng năm và từng tháng?
+2. Movie và TV Show đóng góp như thế nào vào catalog theo thời gian?
+3. Những genre nào xuất hiện nhiều nhất?
+4. Những quốc gia nào có nhiều title liên quan nhất?
+5. Cơ cấu rating/độ tuổi của catalog ra sao?
+6. Một mô hình hồi quy tuyến tính đơn giản mô tả và ngoại suy xu hướng bổ sung title như thế nào?
 
-Nguyên tắc:
+## Phạm vi và cách đọc kết quả
 
-> **Core trước – optional sau.** Làm một hệ thống nhỏ nhưng hoàn chỉnh, dễ học, dễ giải thích và dễ chạy lại.
+Phân tích sử dụng date_added làm timeline, giới hạn trong 10 năm dương lịch 2011–2020. release_year chỉ được dùng làm thông tin ngữ cảnh về năm phát hành.
 
----
+Các chỉ số về title luôn được tính bằng COUNT DISTINCT show_id. Một title có thể có nhiều genre, quốc gia, đạo diễn hoặc diễn viên; vì vậy các bảng liên kết là quan hệ nhiều-nhiều và tổng các nhóm genre/quốc gia không nhất thiết bằng tổng số title.
 
-## 2. Phạm vi bài toán
+Dataset không chứa lượt xem, doanh thu, số subscriber hay hành vi người dùng. Do đó, kết quả chỉ mô tả **catalog trong dữ liệu**, không thể được diễn giải thành mức độ phổ biến, thị phần, sở thích khán giả hay nguyên nhân kinh doanh.
 
-### 2.1 Timeline
+## Dữ liệu
 
-- **`date_added` là timeline chính** vì nhóm phân tích sự thay đổi catalog theo thời điểm title được thêm vào Netflix.
-- **`release_year` chỉ là biến phụ/ngữ cảnh**.
-- Scope: **2011-01-01 → 2020-12-31**.
-- Đây là **10 năm dương lịch đầy đủ**.
-- Raw CSV vẫn giữ nguyên; dữ liệu processed/analysis mới lọc theo scope.
-- **Không dùng actual 2021 làm dữ liệu phân tích core.**
-- Forecast 12 tháng được tạo từ mốc cuối 2020 và được xem là **ngoại suy**, không phải số liệu thực tế của 2021.
+### Dữ liệu nguồn
 
-### 2.2 Câu hỏi nghiên cứu core
+| File | Vai trò |
+|---|---|
+| data/raw/netflix_titles.csv | Dataset chính về title Netflix; dùng cho pipeline core |
+| data/raw/titles.csv | Metadata bổ sung từ nguồn khác; không phải dependency của pipeline core |
+| data/raw/credits.csv | Thông tin credits bổ sung; không phải dependency của pipeline core |
 
-1. Số title được thêm vào Netflix theo năm thay đổi như thế nào?
-2. Cơ cấu Movie và TV Show thay đổi như thế nào theo thời gian?
-3. Những genre nào xuất hiện nhiều và cơ cấu genre thay đổi ra sao?
-4. Những quốc gia nào có nhiều title liên quan và phân bố địa lý như thế nào?
-5. Rating độ tuổi được phân bố như thế nào và thay đổi ra sao?
-6. Số title được thêm mới theo tháng có xu hướng gì?
-7. Từ dữ liệu đến hết 2020, Linear Regression có thể ngoại suy số title được thêm mới trong 12 tháng tiếp theo như thế nào?
+Dữ liệu trong data/raw/ được giữ nguyên. Các bước làm sạch và biến đổi ghi kết quả sang những thư mục đầu ra khác.
 
-### 2.3 Ngoài phạm vi
+### Mô hình dữ liệu chuẩn hóa
 
-Không phân tích:
+| Bảng | Grain | Nội dung |
+|---|---|---|
+| dim_date | Một dòng mỗi ngày | Ngày, tháng, quý và năm trong phạm vi phân tích |
+| dim_title | Một dòng mỗi title | Thông tin title, loại nội dung, ngày thêm, rating và duration |
+| bridge_genre | Một dòng mỗi quan hệ title–genre | Tách các giá trị nhiều genre trong một ô |
+| bridge_country | Một dòng mỗi quan hệ title–country | Tách quốc gia và bổ sung mã ISO alpha-3 |
+| bridge_director | Một dòng mỗi quan hệ title–director | Danh sách đạo diễn của title |
+| bridge_actor | Một dòng mỗi quan hệ title–actor | Danh sách diễn viên của title |
+| fact_monthly_addition | Một dòng mỗi tháng | Số title được thêm trong tháng và chỉ số thời gian |
 
-- lượt xem;
-- doanh thu;
-- subscriber;
-- hành vi người dùng;
-- mức độ yêu thích;
-- nguyên nhân kinh doanh nếu dataset không có biến kiểm chứng;
-- popularity prediction;
-- causal analysis.
+Các bảng này có sẵn tại data/normalized/ và đã được nạp vào database/netflix.db.
 
----
+## Pipeline xử lý
 
-## 3. Dữ liệu
+~~~text
+data/raw/netflix_titles.csv
+        │
+        ▼
+Đọc dữ liệu → Làm sạch text, ngày tháng, duration và release_year
+        │
+        ▼
+Lọc date_added trong 2011–2020
+        │
+        ▼
+Chuẩn hóa thành dim/bridge/fact tables
+        │
+        ├── Kiểm tra khóa, bản ghi mồ côi, bản ghi trùng và số dòng
+        ├── Ghi data/validation_report.json
+        └── Nạp vào database/netflix.db
+~~~
 
-| File | Quy mô đã kiểm tra | Vai trò |
-|---|---:|---|
-| `netflix_titles.csv` | 8,807 dòng / 12 cột | **Nguồn core** cho catalog |
-| `titles.csv` | 6,137 dòng / 15 cột | Enrichment optional: IMDb/TMDB/title metadata |
-| `credits.csv` | 81,355 dòng / 5 cột | Enrichment optional: actor/director |
+Entry point của pipeline là src/pipeline.py. Pipeline sử dụng đường dẫn tương đối tính từ thư mục dự án, không sửa dữ liệu raw và dừng nếu bước validation hoặc kiểm tra khóa ngoại thất bại.
 
-Sau khi lọc `date_added` trong scope 2011–2020, `netflix_titles.csv` có **7,206 title**.
+## Kết quả phân tích nổi bật
 
-Các kiểm tra chính:
+Các insight đã được ghi lại trong [docs/insight_log.md](docs/insight_log.md). Một số kết quả chính:
 
-- `netflix_titles.show_id` là khóa duy nhất cho catalog core.
-- `titles.id` là khóa duy nhất trong `titles.csv`.
-- `titles.id ↔ credits.id` có thể join trực tiếp.
-- Crosswalk Netflix → `titles` bằng `title + release_year + type` chỉ match một phần, nên **không dùng làm dependency cho dashboard core**.
+- Số title được thêm tăng mạnh sau năm 2016, đạt 2.016 title vào năm 2019 và giảm nhẹ còn 1.879 title vào năm 2020.
+- Movie chiếm 5.134/7.294 title (70,4%); TV Show chiếm 2.160/7.294 title (29,6%).
+- International Movies là genre xuất hiện trên nhiều title nhất với 2.343 title.
+- United States là quốc gia liên quan đến nhiều title nhất trong dữ liệu, tiếp theo là India và United Kingdom.
+- Country chưa bao phủ toàn bộ catalog: 6.822/7.294 title có thông tin quốc gia.
+- TV-MA và TV-14 chiếm tỷ trọng lớn trong các title có rating.
 
-### Quyết định quan trọng
+### Mô hình và forecast
 
-**Không INNER JOIN cả 3 CSV thành một unified table.**
+Mô hình MVP dùng **Linear Regression** với:
 
-```text
-3 CSV RAW
-   ↓
-Audit / Clean / Transform
-   ↓
-3 bảng logic CORE
-   ├── dim_title
-   ├── bridge_genre
-   └── bridge_country
-   ↓
-Analysis / Dashboard
+- target: monthly_additions;
+- feature: month_index từ 0 đến 119;
+- train: các tháng năm 2011–2019;
+- test: các tháng năm 2020;
+- metrics: MAE, RMSE và R²;
+- forecast: 9 tháng đầu năm 2021 trong các file output hiện có.
 
-Optional enrichment
-   ├── titles.csv
-   └── credits.csv
-```
+Kết quả chi tiết được lưu tại [docs/metrics.md](docs/metrics.md) và [data/model_outputs/](data/model_outputs/). Forecast là ngoại suy từ snapshot dữ liệu đến hết năm 2020, không phải số liệu thực tế hoặc dự báo chính thức của Netflix. Do R² trên tập test thấp/âm, mô hình nên được xem là baseline mô tả xu hướng dài hạn, không phải mô hình dự báo chính xác theo tháng.
 
-Điều này phù hợp với hướng dẫn của giảng viên: dữ liệu thô có thể được tiền xử lý và phân hoạch thành các bảng logic để đáp ứng yêu cầu đồ án.
+## Dashboard
 
----
+Dashboard Power BI nằm tại dashboard/Dashboard_Custom.pbix. Dashboard gồm **5 trang**, được thiết kế để khám phá:
 
-## 4. Mô hình dữ liệu
+- **Overview:** KPI và xu hướng số title được thêm theo năm/tháng.
+- **Content Trend:** xu hướng bổ sung nội dung theo thời gian, Movie/TV Show và genre.
+- **Geography:** phân bố theo quốc gia, dùng country_code cho bản đồ.
+- **Content Characteristics:** đặc điểm nội dung theo genre, rating, duration và số mùa.
+- **Forecast Evaluation:** monthly additions, đường xu hướng, forecast và sai số dự báo.
 
-### `dim_title`
+Các tương tác chính gồm bộ lọc, drill-down, tooltip và cross-filtering. Power BI có thể yêu cầu cập nhật lại đường dẫn nguồn khi mở repository trên máy khác; hãy trỏ nguồn về các file trong data/normalized/ hoặc database tương ứng.
 
-**Grain:** 1 dòng / 1 Netflix title.
+## Cấu trúc repository
 
-Field chính:
-
-```text
-show_id
-type
-title
-date_added
-release_year
-rating
-duration
-description
-added_year
-added_month
-...
-```
-
-### `bridge_genre`
-
-**Grain:** 1 dòng / 1 quan hệ title–genre.
-
-Một title có thể có nhiều genre.
-
-### `bridge_country`
-
-**Grain:** 1 dòng / 1 quan hệ title–country.
-
-Một title có thể có nhiều country. Có thể thêm `ISO3` để làm map.
-
-### `fact_monthly_additions`
-
-**Grain:** 1 dòng / 1 tháng.
-
-```text
-month | monthly_additions
-```
-
-Tính bằng:
-
-```text
-COUNT DISTINCT show_id
-GROUP BY month(date_added)
-```
-
-Đây là target/feature phục vụ forecast.
-
-### Enrichment optional
-
-Nếu còn thời gian:
-
-- `titles_enrichment`
-- `credits_enrichment`
-- IMDb
-- actor/director
-
-Các phần này **không được trở thành dependency của MVP**. Nếu thiếu thời gian, cắt IMDb/talent đầu tiên.
-
----
-
-## 5. Quy tắc dữ liệu
-
-### Không double-count title
-
-KPI title phải dùng:
-
-```text
-COUNT DISTINCT show_id
-```
-
-Không được lấy số dòng của bridge table rồi gọi đó là số title.
-
-### Many-to-many
-
-Một title có thể có nhiều genre, country hoặc person. Vì vậy phải dùng bridge table và DISTINCT khi tính KPI.
-
-### Raw không được sửa
-
-```text
-data/raw/
-```
-
-chỉ chứa dữ liệu nguồn.
-
-Mọi xử lý tạo dữ liệu ở:
-
-```text
-data/processed/
-```
-
----
-
-## 6. Pipeline
-
-```text
-1. Ingest raw
-      ↓
-2. Audit
-      ↓
-3. Clean
-      ↓
-4. Partition thành 3 bảng logic
-      ↓
-5. JOIN / Merge có kiểm chứng
-      ↓
-6. Calculated fields
-      ↓
-7. EDA
-      ↓
-8. Dashboard
-      ↓
-9. Linear Regression + Forecast
-      ↓
-10. Insight + Caveat
-      ↓
-11. Report + Demo
-      ↓
-12. Final QA
-```
-
-Nguyên tắc:
-
-- Không sửa `data/raw/`.
-- Cleaning phải có lý do.
-- Có before/after hoặc reconciliation.
-- Không dùng absolute path.
-- Không commit secret/API key/token.
-- Không suy luận causal nếu dataset không có biến kiểm chứng.
-
----
-
-## 7. Dashboard MVP
-
-### Công cụ
-
-**Power BI** là phương án MVP của nhóm vì phù hợp với:
-
-- Filter;
-- Drill-down;
-- Tooltip;
-- Cross-filtering;
-- Map.
-
-Nếu một thành viên đã rất quen Streamlit + Plotly thì có thể thay thế, nhưng phải chốt **một công cụ duy nhất trong Tuần 1**.
-
-### 4 trang
-
-#### Trang 1 – Overview
-
-- KPI cards.
-- Line: additions theo năm.
-- Stacked Area: Movie vs TV Show.
-- Filter Year / Type.
-- Drill-down Year → Month.
-
-#### Trang 2 – Content
-
-- Treemap: Genre.
-- Heatmap: Rating × Year.
-- Donut/Pie: rating mix.
-- Filter Year / Type / Genre / Rating.
-- Cross-filter.
-
-#### Trang 3 – Geography
-
-- Choropleth Map.
-- Horizontal Bar: top country.
-- Tooltip.
-- Drill-down nếu phù hợp.
-- Click country để cross-filter.
-
-#### Trang 4 – Forecast
-
-- Histogram: monthly additions.
-- Line: actual vs fitted vs forecast.
-- KPI: MAE, RMSE, R².
-- Forecast horizon: 12 tháng sau 31/12/2020.
-
-### 8 loại chart core
-
-1. Line
-2. Stacked Area
-3. Treemap
-4. Heatmap
-5. Donut/Pie
-6. Choropleth Map
-7. Horizontal Bar
-8. Histogram
-
-IMDb scatter/boxplot là **optional**.
-
-### Interaction bắt buộc
-
-- Filter.
-- Drill-down.
-- Tooltip.
-- Cross-filtering / visual interaction.
-
----
-
-## 8. EDA
-
-Tối thiểu 5 biểu đồ static:
-
-1. Additions theo năm.
-2. Movie vs TV Show.
-3. Top genre.
-4. Top country.
-5. Rating heatmap.
-
-Mỗi chart phải có:
-
-```text
-Question → Metric → Chart → Observation → Caveat
-```
-
----
-
-## 9. Forecast / Machine Learning
-
-### Model
-
-Chỉ dùng **Linear Regression** cho MVP.
-
-### Target
-
-```text
-monthly_additions
-= COUNT DISTINCT show_id theo tháng date_added
-```
-
-### Time split
-
-```text
-Train: 2011–2019
-Test: 2020
-```
-
-**Không random split.**
-
-Sau khi đánh giá:
-
-```text
-Fit lại trên toàn bộ 2011–2020
-        ↓
-Forecast 12 tháng sau 31/12/2020
-```
-
-Metrics:
-
-- MAE
-- RMSE
-- R²
-
-Cách diễn đạt:
-
-> Đây là ngoại suy 12 tháng tiếp theo từ snapshot dữ liệu đến hết 2020 bằng mô hình tuyến tính đơn giản, không phải dự báo chính thức của Netflix.
-
----
-
-## 10. Sáu insight core
-
-1. **Additions theo năm** – số title được thêm vào thay đổi thế nào trong 2011–2020?
-2. **Movie vs TV Show** – cơ cấu catalog thay đổi ra sao?
-3. **Genre** – genre nào xuất hiện nhiều và thay đổi thế nào?
-4. **Country** – title phân bố theo quốc gia ra sao?
-5. **Rating** – cơ cấu rating thay đổi thế nào?
-6. **Monthly additions + forecast** – xu hướng thêm mới theo tháng và kết quả ngoại suy.
-
-Mỗi insight:
-
-```text
-Claim
-↓
-Evidence / số liệu
-↓
-Cách đọc
-↓
-Caveat
-```
-
-Không được biến catalog count thành view count, popularity, audience preference, revenue hoặc business strategy.
-
----
-
-## 11. Cấu trúc GitHub repo
-
-```text
-netflix-idv/
-│
-├── README.md
-├── requirements.txt
-├── .gitignore
-│
+~~~text
+.
 ├── data/
-│   ├── raw/
-│   │   ├── netflix_titles.csv
-│   │   ├── titles.csv
-│   │   └── credits.csv
-│   │
-│   └── processed/
-│       ├── dim_title.csv
-│       ├── bridge_genre.csv
-│       ├── bridge_country.csv
-│       └── fact_monthly_additions.csv
-│
+│   ├── raw/             # Dữ liệu nguồn, không chỉnh sửa
+│   ├── processed/       # Dữ liệu sau làm sạch
+│   ├── normalized/      # Các bảng dim/bridge/fact
+│   └── model_outputs/   # Metrics, forecast và biểu đồ mô hình
+├── database/
+│   └── netflix.db       # SQLite database đã nạp dữ liệu chuẩn hóa
 ├── src/
-│   ├── 01_audit.py
-│   ├── 02_clean.py
-│   └── 03_transform_join.py
-│
-├── notebooks/
-│   ├── 04_eda.ipynb
-│   └── 05_model.ipynb
-│
-├── dashboard/
-│   ├── netflix_idv.pbix
-│   └── assets/
-│
-└── docs/
-    ├── scope.md
-    ├── data_dictionary.md
-    ├── metrics.md
-    ├── data_model.md
-    ├── join_report.md
-    ├── insight_log.md
-    ├── source_log.md
-    ├── interaction_map.md
-    └── report.pdf
-```
+│   ├── config.py        # Đường dẫn, phạm vi năm và ánh xạ quốc gia
+│   ├── ingestion.py     # Đọc dữ liệu nguồn
+│   ├── audit.py         # Kiểm tra cấu trúc, khóa, ngày và phạm vi
+│   ├── cleaning.py      # Làm sạch dữ liệu
+│   ├── normalization.py # Tạo mô hình dữ liệu chuẩn hóa
+│   ├── validation.py    # Kiểm tra tính toàn vẹn và ghi báo cáo
+│   ├── database.py      # Tạo/nạp/kiểm tra SQLite
+│   └── pipeline.py      # Chạy toàn bộ luồng xử lý
+├── notebook/            # Notebook audit, EDA và model
+├── dashboard/           # Power BI dashboard
+├── docs/                # Báo cáo, metric dictionary, insight và demo
+├── requirements.txt
+└── README.md
+~~~
 
-Nếu dùng Streamlit:
+## Cài đặt và chạy lại
 
-```text
-dashboard/
-├── app.py
-├── pages/
-├── assets/
-└── requirements.txt
-```
+Yêu cầu Python 3.10 trở lên và Power BI Desktop nếu muốn mở dashboard.
 
----
+### 1. Tạo môi trường và cài thư viện
 
-## 12. Ba vai trò để tự ứng cử
+Windows PowerShell:
 
-### A – Data / Pipeline / Reproducibility
-
-Phù hợp với người thích Python, pandas, xử lý dữ liệu và debug.
-
-Nhiệm vụ:
-
-- Audit 3 CSV.
-- Kiểm tra null/duplicate/key/range.
-- Cleaning.
-- Tách genre.
-- Tách country.
-- Tạo `dim_title`.
-- Tạo calculated fields.
-- Tạo monthly additions.
-- Kiểm tra double-count.
-- Viết data dictionary.
-- Viết join/data-quality report.
-- Đảm bảo pipeline chạy lại được.
-
-Deliverable:
-
-```text
-01_audit.py
-02_clean.py
-03_transform_join.py
-data/processed/
-data_dictionary.md
-join_report.md
-```
-
-**Nên ứng cử A nếu:** bạn thích làm phần dữ liệu và debug.
-
----
-
-### B – EDA / Model / Insight
-
-Phù hợp với người thích phân tích, thống kê cơ bản, biểu đồ và giải thích kết quả.
-
-Nhiệm vụ:
-
-- Làm 5 EDA static.
-- Định nghĩa metric.
-- Tìm và kiểm chứng insight.
-- Linear Regression.
-- Time-based train/test.
-- MAE/RMSE/R².
-- Forecast 12 tháng.
-- Viết 6+ insight.
-- Viết caveat.
-- Phụ trách EDA/Model/Insight trong report.
-
-Deliverable:
-
-```text
-04_eda.ipynb
-05_model.ipynb
-model_metrics.csv
-insight_log.md
-```
-
-**Nên ứng cử B nếu:** bạn thích trả lời “dữ liệu đang cho thấy điều gì?”.
-
----
-
-### C – Dashboard / UI-UX / Demo
-
-Phù hợp với người thích Power BI, trực quan hóa, giao diện và trình bày.
-
-Nhiệm vụ:
-
-- Wireframe.
-- 4 dashboard pages.
-- 8 chart types.
-- Map.
-- Filters.
-- Drill-down.
-- Tooltip.
-- Cross-filtering.
-- Dashboard QA.
-- Demo/video.
-- README setup.
-- Dashboard/Demo trong report.
-
-Deliverable:
-
-```text
-dashboard/
-interaction_map.md
-demo script/video
-```
-
-**Nên ứng cử C nếu:** bạn thích làm phần trực quan và demo.
-
----
-
-## 13. Review chéo
-
-```text
-A ↔ B : data / metric / model input
-A ↔ C : data binding / dashboard data
-B ↔ C : insight / chart meaning / forecast
-```
-
-Trong tuần 3, mỗi người phải kiểm tra phần của người khác.
-
-Mục tiêu: nếu một thành viên vắng mặt, hai người còn lại vẫn hiểu đủ pipeline để giải thích và chạy lại dự án.
-
----
-
-## 14. Kế hoạch 3 tuần
-
-### Tuần 1 – Data + EDA + Prototype
-**21–27/09/2026**
-
-- Khóa scope 2011–2020.
-- Audit.
-- Cleaning.
-- 3 bảng core.
-- Calculated fields.
-- Monthly additions.
-- EDA 5 chart.
-- Dashboard prototype.
-- M1 sign-off.
-
-### Tuần 2 – Dashboard + Forecast
-**28/09–04/10/2026**
-
-- Wireframe.
-- Country/ISO3.
-- Overview.
-- Content.
-- Geography.
-- Linear Regression.
-- Forecast.
-- Interaction test.
-- Khóa dashboard MVP.
-- M2 sign-off.
-
-### Tuần 3 – Insight + Report + Demo + QA
-**05–11/10/2026**
-
-- Chốt 6+ insights.
-- Hoàn thiện report.
-- README/docs.
-- Clean clone/re-run test.
-- Video backup.
-- Luyện vấn đáp.
-- Final package.
-- 10–11/10 là buffer.
-
----
-
-## 15. Sản phẩm cuối cùng
-
-Tối thiểu:
-
-1. GitHub repository.
-2. `dim_title`.
-3. `bridge_genre`.
-4. `bridge_country`.
-5. EDA notebook với ≥5 static charts.
-6. Dashboard 4 trang.
-7. ≥8 loại chart + map.
-8. Filter + drill-down + tooltip + cross-filtering.
-9. Linear Regression.
-10. MAE/RMSE/R².
-11. Forecast 12 tháng sau 31/12/2020.
-12. ≥6 insights.
-13. PDF report.
-14. README.
-15. `requirements.txt`.
-16. Video demo backup.
-
----
-
-## 16. Cách chạy Python
-
-### Windows PowerShell
-
-```powershell
+~~~powershell
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-```
+~~~
 
-### Pipeline
+### 2. Chạy toàn bộ pipeline
 
-```powershell
-python src/01_audit.py
-python src/02_clean.py
-python src/03_transform_join.py
-```
+Từ thư mục gốc của repository:
 
-### Notebook
+~~~powershell
+python src/pipeline.py
+~~~
 
-```powershell
+Sau khi chạy thành công, các đầu ra chính là:
+
+- data/processed/netflix_titles.csv
+- các file CSV trong data/normalized/
+- data/validation_report.json
+- database/netflix.db
+
+### 3. Chạy notebook
+
+~~~powershell
 jupyter lab
-```
+~~~
 
-Chạy theo thứ tự:
+Mở notebook theo thứ tự:
 
-```text
-04_eda.ipynb
-05_model.ipynb
-```
+1. notebook/01_data_audit.ipynb
+2. notebook/02_eda.ipynb
+3. notebook/03_model.ipynb
 
-### Power BI
+### 4. Mở dashboard và tài liệu
 
-Mở:
+- Mở dashboard/Dashboard_Custom.pbix bằng Power BI Desktop.
+- Báo cáo tổng hợp: [docs/report.pdf](docs/report.pdf).
+- Video demo: [docs/demo.mp4](docs/demo.mp4).
+- Từ điển metric: [docs/metrics.md](docs/metrics.md).
+- Nhật ký insight: [docs/insight_log.md](docs/insight_log.md).
 
-```text
-dashboard/netflix_idv.pbix
-```
+## Giới hạn và khả năng mở rộng
 
-Sau khi clone trên máy khác, kiểm tra lại source path của Power BI và trỏ về `data/processed/` nếu cần.
+- date_added phản ánh thời điểm dữ liệu ghi nhận title được thêm vào catalog, không nhất thiết phản ánh toàn bộ lịch sử phát hành của Netflix.
+- Một số trường như country hoặc rating có thể bị thiếu; các tỷ lệ cần ghi rõ mẫu số và mức độ bao phủ.
+- Dữ liệu nhiều-nhiều có thể gây double-count nếu không dùng COUNT DISTINCT show_id.
+- Linear Regression hiện chỉ dùng một biến thời gian, chưa mô hình hóa seasonality hay các yếu tố bên ngoài.
+- Có thể mở rộng bằng việc bổ sung kiểm định thống kê, mô hình chuỗi thời gian, metadata chất lượng cao hơn hoặc phân tích credits; các phần này không cần thiết cho pipeline core hiện tại.
 
----
+## Tài liệu tham khảo trong repository
 
-## 17. Git workflow
+- [docs/report.pdf](docs/report.pdf): báo cáo dự án.
+- [docs/metrics.md](docs/metrics.md): định nghĩa metric và kết quả model.
+- [docs/insight_log.md](docs/insight_log.md): các insight kèm evidence và caveat.
+- [docs/26_AnhAnhHoc_IDV_REPORT.docx](docs/26_AnhAnhHoc_IDV_REPORT.docx): bản báo cáo dạng Word.
 
-Dùng `main` làm branch ổn định.
+## License và nguồn dữ liệu
 
-Branches:
-
-```text
-feature/data
-feature/eda-model
-feature/dashboard
-```
-
-Ví dụ:
-
-```bash
-git add .
-git commit -m "feat: audit netflix raw data"
-git push
-```
-
-Không commit:
-
-```text
-.venv/
-__pycache__/
-.ipynb_checkpoints/
-secrets
-API keys
-cache
-file tạm
-```
-
----
-
-## 18. Những việc không làm trong MVP
-
-Để kịp 3 tuần, không mở rộng sang:
-
-- Dự đoán lượt xem.
-- Dự đoán doanh thu.
-- Dự đoán subscriber.
-- User behavior.
-- Causal analysis.
-- Clustering/classification chỉ để có thêm ML.
-- Prophet như mô hình chính.
-- IMDb/talent trước khi dashboard core hoàn chỉnh.
-- Ép JOIN 3 CSV thành một bảng.
-- Thêm chart trùng ý nghĩa chỉ để tăng số lượng.
-
----
-
-## 19. Definition of Done
-
-- [ ] Scope = 2011–2020.
-- [ ] Đúng 10 năm dương lịch đầy đủ.
-- [ ] `date_added` là timeline chính.
-- [ ] Raw data được giữ nguyên.
-- [ ] Có audit + cleaning log.
-- [ ] Có ≥3 bảng logic core.
-- [ ] Có JOIN/Merge được giải thích bằng key/cardinality.
-- [ ] Không double-count title.
-- [ ] Có ≥5 EDA static charts.
-- [ ] Dashboard có 4 trang core.
-- [ ] Có ≥8 loại chart.
-- [ ] Có map.
-- [ ] Có filter.
-- [ ] Có drill-down.
-- [ ] Có tooltip.
-- [ ] Có cross-filtering.
-- [ ] Có Linear Regression.
-- [ ] Có MAE/RMSE/R².
-- [ ] Có forecast 12 tháng sau 31/12/2020.
-- [ ] Có ≥6 insights.
-- [ ] Insight có evidence + caveat.
-- [ ] README có hướng dẫn chạy.
-- [ ] Repo clone được trên máy khác.
-- [ ] Report hoàn chỉnh.
-- [ ] Video demo backup.
-- [ ] Cả 3 thành viên hiểu được toàn pipeline.
-
----
-
-## 20. Nguyên tắc cuối cùng
-
-> **Đừng cố làm thật nhiều. Hãy làm một pipeline nhỏ nhưng hoàn chỉnh và giải thích được từ đầu đến cuối.**
-
-Khi thiếu thời gian:
-
-```text
-Data quality
-→ 3 bảng core
-→ EDA
-→ Dashboard + 8 chart types + Map + Interaction
-→ Linear Regression + Forecast
-→ 6 Insights
-→ Report / Demo / Reproducibility
-→ IMDb / Talent nếu còn thời gian
-```
+Repository này được xây dựng cho mục đích học tập và trình bày đồ án.
