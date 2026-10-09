@@ -35,9 +35,7 @@ Dataset không chứa lượt xem, doanh thu, số subscriber hay hành vi ngư�
 
 | File | Vai trò |
 |---|---|
-| data/raw/netflix_titles.csv | Dataset chính về title Netflix; dùng cho pipeline core |
-| data/raw/titles.csv | Metadata bổ sung từ nguồn khác; không phải dependency của pipeline core |
-| data/raw/credits.csv | Thông tin credits bổ sung; không phải dependency của pipeline core |
+| data/raw/netflix_titles.csv | Dataset nguồn duy nhất được sử dụng trong pipeline, notebook, dashboard và báo cáo |
 
 Dữ liệu trong data/raw/ được giữ nguyên. Các bước làm sạch và biến đổi ghi kết quả sang những thư mục đầu ra khác.
 
@@ -78,7 +76,7 @@ Entry point của pipeline là src/pipeline.py. Pipeline sử dụng đường d
 
 ## Kết quả phân tích nổi bật
 
-Các insight đã được ghi lại trong [docs/insight_log.md](docs/insight_log.md). Một số kết quả chính:
+Các insight chính được trình bày trong báo cáo cuối kỳ và file văn bản đi kèm trong thư mục docs. Một số kết quả chính:
 
 - Số title được thêm tăng mạnh sau năm 2016, đạt 2.016 title vào năm 2019 và giảm nhẹ còn 1.879 title vào năm 2020.
 - Movie chiếm 5.134/7.294 title (70,4%); TV Show chiếm 2.160/7.294 title (29,6%).
@@ -93,12 +91,12 @@ Mô hình MVP dùng **Linear Regression** với:
 
 - target: monthly_additions;
 - feature: month_index từ 0 đến 119;
-- train: các tháng năm 2011–2019;
-- test: các tháng năm 2020;
-- metrics: MAE, RMSE và R²;
+- dữ liệu huấn luyện: 120 tháng từ 01/2011 đến 12/2020;
+- đánh giá ngoài mẫu: đối chiếu với dữ liệu thực tế từ 01/2021 đến 09/2021;
+- metrics: MAE và RMSE;
 - forecast: 9 tháng đầu năm 2021 trong các file output hiện có.
 
-Kết quả chi tiết được lưu tại [docs/metrics.md](docs/metrics.md) và [data/model_outputs/](data/model_outputs/). Forecast là ngoại suy từ snapshot dữ liệu đến hết năm 2020, không phải số liệu thực tế hoặc dự báo chính thức của Netflix. Do R² trên tập test thấp/âm, mô hình nên được xem là baseline mô tả xu hướng dài hạn, không phải mô hình dự báo chính xác theo tháng.
+Kết quả mô hình được lưu tại [data/model_outputs/](data/model_outputs/), gồm forecast 9 tháng, dữ liệu actual–forecast, sai số theo tháng và hai chỉ số MAE/RMSE. Mô hình được huấn luyện trên 120 tháng từ 01/2011 đến 12/2020, sau đó ngoại suy cho 01/2021–09/2021. Đây là một baseline mô tả xu hướng tuyến tính, không phải số liệu thực tế hoặc dự báo chính thức của Netflix.
 
 ## Dashboard
 
@@ -134,7 +132,7 @@ Các tương tác chính gồm bộ lọc, drill-down, tooltip và cross-filteri
 │   └── pipeline.py      # Chạy toàn bộ luồng xử lý
 ├── notebook/            # Notebook audit, EDA và model
 ├── dashboard/           # Power BI dashboard
-├── docs/                # Báo cáo, metric dictionary, insight và demo
+├── docs/                # Báo cáo, bản PDF, file văn bản và video demo
 ├── requirements.txt
 └── README.md
 ~~~
@@ -183,10 +181,10 @@ Mở notebook theo thứ tự:
 ### 4. Mở dashboard và tài liệu
 
 - Mở dashboard/Dashboard_Custom.pbix bằng Power BI Desktop.
-- Báo cáo tổng hợp: [docs/report.pdf](docs/report.pdf).
+- Báo cáo Word: [docs/26_AnhAnhHoc_IDV_REPORT.docx](docs/26_AnhAnhHoc_IDV_REPORT.docx).
+- Báo cáo PDF: [docs/26_AnhAnhHoc_IDV_REPORT.pdf](docs/26_AnhAnhHoc_IDV_REPORT.pdf).
+- Nội dung văn bản: [docs/26_AnhAnhHoc_IDV_REPORT.txt](docs/26_AnhAnhHoc_IDV_REPORT.txt).
 - Video demo: [docs/demo.mp4](docs/demo.mp4).
-- Từ điển metric: [docs/metrics.md](docs/metrics.md).
-- Nhật ký insight: [docs/insight_log.md](docs/insight_log.md).
 
 ## Giới hạn và khả năng mở rộng
 
@@ -194,14 +192,13 @@ Mở notebook theo thứ tự:
 - Một số trường như country hoặc rating có thể bị thiếu; các tỷ lệ cần ghi rõ mẫu số và mức độ bao phủ.
 - Dữ liệu nhiều-nhiều có thể gây double-count nếu không dùng COUNT DISTINCT show_id.
 - Linear Regression hiện chỉ dùng một biến thời gian, chưa mô hình hóa seasonality hay các yếu tố bên ngoài.
-- Có thể mở rộng bằng việc bổ sung kiểm định thống kê, mô hình chuỗi thời gian, metadata chất lượng cao hơn hoặc phân tích credits; các phần này không cần thiết cho pipeline core hiện tại.
+- Có thể mở rộng bằng việc bổ sung kiểm định thống kê, biến mùa vụ hoặc các mô hình chuỗi thời gian; các phần này không cần thiết cho pipeline core hiện tại.
 
 ## Tài liệu tham khảo trong repository
 
-- [docs/report.pdf](docs/report.pdf): báo cáo dự án.
-- [docs/metrics.md](docs/metrics.md): định nghĩa metric và kết quả model.
-- [docs/insight_log.md](docs/insight_log.md): các insight kèm evidence và caveat.
-- [docs/26_AnhAnhHoc_IDV_REPORT.docx](docs/26_AnhAnhHoc_IDV_REPORT.docx): bản báo cáo dạng Word.
+- [docs/26_AnhAnhHoc_IDV_REPORT.docx](docs/26_AnhAnhHoc_IDV_REPORT.docx): báo cáo dự án dạng Word.
+- [docs/26_AnhAnhHoc_IDV_REPORT.pdf](docs/26_AnhAnhHoc_IDV_REPORT.pdf): báo cáo dự án dạng PDF.
+- [docs/26_AnhAnhHoc_IDV_REPORT.txt](docs/26_AnhAnhHoc_IDV_REPORT.txt): nội dung văn bản của báo cáo.
 
 ## License và nguồn dữ liệu
 
