@@ -102,12 +102,13 @@ Kết quả chi tiết được lưu tại [docs/metrics.md](docs/metrics.md) v�
 
 ## Dashboard
 
-Dashboard Power BI nằm tại dashboard/Dashboard_Custom.pbix. Dashboard được thiết kế để khám phá:
+Dashboard Power BI nằm tại dashboard/Dashboard_Custom.pbix. Dashboard gồm **5 trang**, được thiết kế để khám phá:
 
 - **Overview:** KPI và xu hướng số title được thêm theo năm/tháng.
-- **Content:** Movie/TV Show, genre và rating.
+- **Content Trend:** xu hướng bổ sung nội dung theo thời gian, Movie/TV Show và genre.
 - **Geography:** phân bố theo quốc gia, dùng country_code cho bản đồ.
-- **Forecast:** monthly additions, đường xu hướng và kết quả ngoại suy.
+- **Content Characteristics:** đặc điểm nội dung theo genre, rating, duration và số mùa.
+- **Forecast Evaluation:** monthly additions, đường xu hướng, forecast và sai số dự báo.
 
 Các tương tác chính gồm bộ lọc, drill-down, tooltip và cross-filtering. Power BI có thể yêu cầu cập nhật lại đường dẫn nguồn khi mở repository trên máy khác; hãy trỏ nguồn về các file trong data/normalized/ hoặc database tương ứng.
 
@@ -204,5 +205,4 @@ Mở notebook theo thứ tự:
 
 ## License và nguồn dữ liệu
 
-Repository này được xây dựng cho mục đích học tập và trình bày đồ án. Hãy kiểm tra quyền sử dụng và điều khoản của các nguồn dữ liệu gốc trước khi tái phân phối dữ liệu hoặc sử dụng cho mục đích thương mại.
-
+Repository này được xây dựng cho mục đích học tập và trình bày đồ án.
