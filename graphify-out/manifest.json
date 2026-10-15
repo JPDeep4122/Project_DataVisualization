@@ -1,0 +1,158 @@
+{
+  "data/validation_report.json": {
+    "mtime": 1791555649.1393554,
+    "seen": 1792005249.197509,
+    "ast_hash": "e2cef9a193319ed63c269fe968635228",
+    "semantic_hash": "e2cef9a193319ed63c269fe968635228"
+  },
+  "src/__init__.py": {
+    "mtime": 1791472086.2863605,
+    "seen": 1792005249.1975138,
+    "ast_hash": "d41d8cd98f00b204e9800998ecf8427e",
+    "semantic_hash": "d41d8cd98f00b204e9800998ecf8427e"
+  },
+  "src/audit.py": {
+    "mtime": 1791555533.5524695,
+    "seen": 1792005249.1975155,
+    "ast_hash": "7ccaaa5f4c38727b8acbe2e16be70e49",
+    "semantic_hash": "7ccaaa5f4c38727b8acbe2e16be70e49"
+  },
+  "src/cleaning.py": {
+    "mtime": 1791472086.2883756,
+    "seen": 1792005249.1975162,
+    "ast_hash": "19bcd86ae6303ba24682475d904476c1",
+    "semantic_hash": "19bcd86ae6303ba24682475d904476c1"
+  },
+  "src/config.py": {
+    "mtime": 1791472086.2883756,
+    "seen": 1792005249.1975174,
+    "ast_hash": "fadadf65d347312c14eab2c4393974b1",
+    "semantic_hash": "fadadf65d347312c14eab2c4393974b1"
+  },
+  "src/database.py": {
+    "mtime": 1791472086.2893791,
+    "seen": 1792005249.197518,
+    "ast_hash": "b6c9890cb70da78197802664970ebebb",
+    "semantic_hash": "b6c9890cb70da78197802664970ebebb"
+  },
+  "src/ingestion.py": {
+    "mtime": 1791472086.2898917,
+    "seen": 1792005249.197519,
+    "ast_hash": "ee1dddcb16544dadff53470022a60879",
+    "semantic_hash": "ee1dddcb16544dadff53470022a60879"
+  },
+  "src/normalization.py": {
+    "mtime": 1791472086.2909093,
+    "seen": 1792005249.1975198,
+    "ast_hash": "a5947728c44d1ab4275f8b077ca91a68",
+    "semantic_hash": "a5947728c44d1ab4275f8b077ca91a68"
+  },
+  "src/pipeline.py": {
+    "mtime": 1791472086.2919064,
+    "seen": 1792005249.1975205,
+    "ast_hash": "bb44838051f4ae78f8ba3370df90998b",
+    "semantic_hash": "bb44838051f4ae78f8ba3370df90998b"
+  },
+  "src/validation.py": {
+    "mtime": 1791472086.2919064,
+    "seen": 1792005249.1975212,
+    "ast_hash": "5db2fce5edc93f0b428320a7bc9e5a72",
+    "semantic_hash": "5db2fce5edc93f0b428320a7bc9e5a72"
+  },
+  "tools/customize_powerbi.ps1": {
+    "mtime": 1791485413.5721974,
+    "seen": 1792005249.197522,
+    "ast_hash": "3abc652883dffb97af5c65dcc782269d",
+    "semantic_hash": "3abc652883dffb97af5c65dcc782269d"
+  },
+  "README.md": {
+    "mtime": 1791562577.753579,
+    "seen": 1792005249.1975229,
+    "ast_hash": "53ce1c60e8c96606f20438b842af92f9",
+    "semantic_hash": "53ce1c60e8c96606f20438b842af92f9"
+  },
+  "docs/26_AnhAnhHoc_IDV_REPORT.txt": {
+    "mtime": 1791560837.278305,
+    "seen": 1792005249.1975236,
+    "ast_hash": "2092c33d6fc8f2e196ccd50a8d247a95",
+    "semantic_hash": "2092c33d6fc8f2e196ccd50a8d247a95"
+  },
+  "docs/TEAM_ROLES.md": {
+    "mtime": 1791598020.5731833,
+    "seen": 1792005249.1975243,
+    "ast_hash": "c2f66fcba0890dfcc744b8a65c719778",
+    "semantic_hash": "c2f66fcba0890dfcc744b8a65c719778"
+  },
+  "graphify-out/converted/26_AnhAnhHoc_IDV_REPORT_9b28c1f3.md": {
+    "mtime": 1791999081.9495096,
+    "seen": 1792005249.197525,
+    "ast_hash": "489bc5a916d92c37b07304875b549d41",
+    "semantic_hash": "489bc5a916d92c37b07304875b549d41"
+  },
+  "requirements.txt": {
+    "mtime": 1791472086.284998,
+    "seen": 1792005249.1975255,
+    "ast_hash": "6cbf0ed0289f27e3eb2b60462e4cd679",
+    "semantic_hash": "6cbf0ed0289f27e3eb2b60462e4cd679"
+  },
+  "docs/26_AnhAnhHoc_IDV_REPORT.pdf": {
+    "mtime": 1791563068.6244838,
+    "seen": 1792005249.1975262,
+    "ast_hash": "7a3a95d47d9de9ec178976f251d13c4e",
+    "semantic_hash": "7a3a95d47d9de9ec178976f251d13c4e"
+  },
+  "docs/references/B\u00e1o c\u00e1o cu\u1ed1i k\u1ef3 - Ph\u00e2n t\u00edch d\u1eef li\u1ec7u h\u1ec7 th\u1ed1ng phim tr\u00ean Netflix (IPPA233277) - Studocu.pdf": {
+    "mtime": 1791472086.128362,
+    "seen": 1792005249.1975281,
+    "ast_hash": "e2b45aff6b424f3439cdf9c7163d0100",
+    "semantic_hash": "e2b45aff6b424f3439cdf9c7163d0100"
+  },
+  "docs/references/B\u00e1o c\u00e1o \u0110\u1ed3 \u00c1n K\u1ebft Th\u00fac M\u00f4n Ph\u00e2n T\u00edch D\u1eef Li\u1ec7u Kinh Doanh_ Netflix Movies & TV - Studocu.pdf": {
+    "mtime": 1791472086.2243044,
+    "seen": 1792005249.1975288,
+    "ast_hash": "d8ec1b04a1e910b6e40a9a3ec93aa70b",
+    "semantic_hash": "d8ec1b04a1e910b6e40a9a3ec93aa70b"
+  },
+  "docs/references/PH\u00c2N T\u00cdCH D\u1eee LI\u1ec6U PHIM V\u00c0 CH\u01af\u01a0NG TR\u00ccNH TRUY\u1ec0N H\u00ccNH VJP - Studocu.pdf": {
+    "mtime": 1791472086.2653894,
+    "seen": 1792005249.1975298,
+    "ast_hash": "dec711431a7cdc184bb00288e7d9b03e",
+    "semantic_hash": "dec711431a7cdc184bb00288e7d9b03e"
+  },
+  "docs/rubric/DanhSachDeTai_IDV_fn.pdf": {
+    "mtime": 1791472086.2699406,
+    "seen": 1792005249.1975305,
+    "ast_hash": "046df742973406a9eace2f7aa7bedca9",
+    "semantic_hash": "046df742973406a9eace2f7aa7bedca9"
+  },
+  "docs/rubric/RUBRIC IDV CU\u1ed0I K\u1ef2.pdf": {
+    "mtime": 1791472086.272953,
+    "seen": 1792005249.1975315,
+    "ast_hash": "acd5fdf70dd4a37408755162321bf3c3",
+    "semantic_hash": "acd5fdf70dd4a37408755162321bf3c3"
+  },
+  "data/model_outputs/residual_plot.png": {
+    "mtime": 1791472085.758552,
+    "seen": 1792005249.1975324,
+    "ast_hash": "e6ea15fa0113b81e8ad01920340f6294",
+    "semantic_hash": "e6ea15fa0113b81e8ad01920340f6294"
+  },
+  "data/model_outputs/trend_and_data_9_months.png": {
+    "mtime": 1791472085.7605672,
+    "seen": 1792005249.197533,
+    "ast_hash": "d70aff9e53f095ea419a2b6c85d1c259",
+    "semantic_hash": "d70aff9e53f095ea419a2b6c85d1c259"
+  },
+  "docs/Untitled Diagram.jpg": {
+    "mtime": 1791472086.0093021,
+    "seen": 1792005249.1975336,
+    "ast_hash": "2d333242e4527e5301791c73d2332686",
+    "semantic_hash": "2d333242e4527e5301791c73d2332686"
+  },
+  "docs/demo.mp4": {
+    "mtime": 1791554519.05326,
+    "seen": 1792005249.1975343,
+    "ast_hash": "aa7b38e1df70523ecd6d52a23379fdbf",
+    "semantic_hash": "aa7b38e1df70523ecd6d52a23379fdbf"
+  }
+}
