@@ -75,7 +75,7 @@ def audit_date(df: pd.DataFrame) -> dict[str, dict[str, Any]] | None:
 
     result = {}
     for date_cols in date_columns:
-        parsed = pd.to_datetime(df[date_cols], errors="coerce")
+        parsed = pd.to_datetime(df[date_cols], errors="coerce", format="mixed")
         result[date_cols] = {
             "original_dtype": str(df[date_cols].dtype),
             "null_count": int(df[date_cols].isna().sum()),
@@ -96,7 +96,7 @@ def audit_scope(
     Kiểm tra phạm vi dữ liệu theo date_added.
     Project hiện tại: 2011 <= year(date_added) <= 2020
     """
-    dates = pd.to_datetime(df["date_added"], errors="coerce")
+    dates = pd.to_datetime(df["date_added"], errors="coerce", format="mixed")
     years = dates.dt.year
     in_scope = years.between(start_year, end_year)
 
@@ -135,3 +135,9 @@ if __name__ == "__main__":
     for column in audit_result["multivalue"].keys():
         print(df[column].head())
         print('-'*100)
+
+    # dates = pd.to_datetime(df["date_added"], errors="coerce")
+
+    # invalid_mask = df["date_added"].notna() & dates.isna()
+
+    # df.loc[invalid_mask, ["show_id", "title", "date_added"]]
