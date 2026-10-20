@@ -10,8 +10,8 @@ from pathlib import Path
 from typing import Any
 import pandas as pd
 
-from ingestion import load_all_data
-from cleaning import clean_all_data, save_cleaned_data
+from ingestion import load_netflix_titles
+from cleaning import clean_netflix_titles, save_cleaned_data
 from normalization import normalize_data, save_normalized_data
 from validation import load_normalized_data, build_report, save_report
 from database import create_database, load_csv_to_database, validate_database
@@ -29,18 +29,17 @@ def run_pipeline(
 
     # 1. Ingestion
     print("\n[1/5] Ingestion: Đọc dữ liệu thô...")
-    raw_data: dict[str, pd.DataFrame] = load_all_data()
+    raw_df: pd.DataFrame = load_netflix_titles()
 
     # 2. Cleaning
     print("\n[2/5] Cleaning: Làm sạch dữ liệu...")
-    cleaned_data: dict[str, pd.DataFrame] = clean_all_data(raw_data)
-    save_cleaned_data(cleaned_data)
+    cleaned_df: pd.DataFrame = clean_netflix_titles(raw_df)
+    save_cleaned_data(cleaned_df)
 
     # 3. Normalization
     print("\n[3/5] Normalization: Chuẩn hóa mô hình dữ liệu...")
-    netflix_clean: pd.DataFrame = cleaned_data["netflix_titles"]
     normalized_data: dict[str, pd.DataFrame] = normalize_data(
-        netflix_clean,
+        cleaned_df,
         start_year=start_year,
         end_year=end_year
     )

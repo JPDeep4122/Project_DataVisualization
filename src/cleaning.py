@@ -1,6 +1,6 @@
 from pathlib import Path
 import pandas as pd
-from ingestion import load_all_data
+from ingestion import load_netflix_titles
 
 def clean_text_columns(df: pd.DataFrame) -> pd.DataFrame:
     """
@@ -85,117 +85,70 @@ def clean_netflix_titles(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def clean_titles(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Làm sạch titles.csv
-    """
-    df = df.copy()
-
-    df = clean_text_columns(df)
-
-    return df
-
-
-def clean_credits(df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Cleaning cho credits.csv.
-
-    Lưu ý:
-    credits.id là FK tham chiếu đến titles.id,
-    không phải khóa chính.
-    """
-
-    df = df.copy()
-
-    df = clean_text_columns(df)
-
-    return df
-
-
-def clean_all_data(data: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
-    """
-    Chạy cleaning cho toàn bộ dataset.
-    """
-
-    cleaned_data = {
-        "netflix_titles": clean_netflix_titles(
-            data["netflix_titles"]
-        ),
-
-        "titles": clean_titles(
-            data["titles"]
-        ),
-
-        "credits": clean_credits(
-            data["credits"]
-        )
-    }
-
-    return cleaned_data
-
-
 def cleaning_summary(
-    before: dict[str, pd.DataFrame],
-    after: dict[str, pd.DataFrame]
+    before: pd.DataFrame,
+    after: pd.DataFrame
 ) -> pd.DataFrame:
-
-    records = []
-
-    for name in before:
-
-        before_df = before[name]
-        after_df = after[name]
-
-        records.append({
-            "table": name,
-            "rows_before": len(before_df),
-            "rows_after": len(after_df),
-            "columns_before": len(before_df.columns),
-            "columns_after": len(after_df.columns),
-            "rows_removed": (
-                len(before_df) - len(after_df)
-            )
-        })
-
-    return pd.DataFrame(records)
+    """Tóm tắt số dòng và số cột trước và sau khi làm sạch."""
+    return pd.DataFrame([{
+        "rows_before": len(before.index),
+        "rows_after": len(after.index),
+        "columns_before": len(before.columns),
+        "columns_after": len(after.columns),
+        "rows_removed": (
+            len(before) - len(after)
+        )
+    }])
 
 
 def save_cleaned_data(
-    cleaned_data: dict[str, pd.DataFrame],
-    output_dir: str | Path = "data/processed"
+    cleaned_data: pd.DataFrame | dict[str, pd.DataFrame],
+    output_dir: str | Path = "data/processed",
+    filename: str = "netflix_titles.csv"
 ) -> None:
-
+    """Lưu dữ liệu đã làm sạch vào thư mục output_dir."""
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
 
-    for name, df in cleaned_data.items():
-        file_path = (
-            output_path /
-            f"{name}.csv"
-        )
-
-        df.to_csv(
+    if isinstance(cleaned_data, pd.DataFrame):
+        file_path = output_path / filename
+        cleaned_data.to_csv(
             file_path,
             index=False,
             encoding="utf-8-sig"
         )
-
         print(f"Saved: {file_path}")
+    elif isinstance(cleaned_data, dict):
+        for name, df in cleaned_data.items():
+            file_path = (
+                output_path /
+                f"{name}.csv"
+            )
+
+            df.to_csv(
+                file_path,
+                index=False,
+                encoding="utf-8-sig"
+            )
+
+            print(f"Saved: {file_path}")
+
+
+def clean_all_data(data: pd.DataFrame | dict[str, pd.DataFrame]) -> pd.DataFrame | dict[str, pd.DataFrame]:
+    """Hàm wrapper tương thích ngược khi chạy pipeline."""
+    if isinstance(data, pd.DataFrame):
+        return clean_netflix_titles(data)
+    return {
+        name: clean_netflix_titles(df) if name == "netflix_titles" else clean_text_columns(df)
+        for name, df in data.items()
+    }
 
 
 if __name__ == "__main__":
 
-    # Load raw data
-    data = load_all_data()
-
-    # Cleaning
-    cleaned_data = clean_all_data(data)
-
-    # Summary
-    summary = cleaning_summary(
-        data,
-        cleaned_data
-    )
+    data = load_netflix_titles()
+    cleaned_data = clean_netflix_titles(data)
+    summary = cleaning_summary(data, cleaned_data)
 
     print("\n=== CLEANING SUMMARY ===")
     print(summary.to_string(index=False))

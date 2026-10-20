@@ -81,6 +81,30 @@ SCHEMAS: dict[str, str] = {
         )
     """,
 
+    "bridge_director": """
+        CREATE TABLE bridge_director (
+            show_id TEXT NOT NULL,
+            director TEXT NOT NULL,
+
+            PRIMARY KEY (show_id, director),
+
+            FOREIGN KEY (show_id)
+                REFERENCES dim_title(show_id)
+        )
+    """,
+
+    "bridge_actor": """
+        CREATE TABLE bridge_actor (
+            show_id TEXT NOT NULL,
+            actor TEXT NOT NULL,
+
+            PRIMARY KEY (show_id, actor),
+
+            FOREIGN KEY (show_id)
+                REFERENCES dim_title(show_id)
+        )
+    """,
+
     "fact_monthly_addition": """
         CREATE TABLE fact_monthly_addition (
             date_key INTEGER PRIMARY KEY,
@@ -98,6 +122,8 @@ DROP_ORDER: list[str] = [
     "fact_monthly_addition",
     "bridge_genre",
     "bridge_country",
+    "bridge_director",
+    "bridge_actor",
     "dim_title",
     "dim_date",
 ]
@@ -108,6 +134,8 @@ LOAD_ORDER: list[str] = [
     "fact_monthly_addition",
     "bridge_genre",
     "bridge_country",
+    "bridge_director",
+    "bridge_actor",
 ]
 
 
@@ -136,7 +164,7 @@ def create_database(db_path: str | Path = DATABASE_FILE) -> Path:
 
 
 def load_csv_to_database(db_path: str | Path = DATABASE_FILE) -> None:
-    """Nạp 5 CSV chuẩn hóa vào SQLite."""
+    """Nạp 7 CSV chuẩn hóa vào SQLite."""
     conn = sqlite3.connect(Path(db_path))
 
     try:

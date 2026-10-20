@@ -1,4 +1,4 @@
-"""Chuẩn hóa dữ liệu Netflix thành mô hình dữ liệu phân tích 5 bảng.
+"""Chuẩn hóa dữ liệu Netflix thành mô hình dữ liệu phân tích 7 bảng.
 
 Chi tiết thiết kế, quan hệ và quy trình: docs/03_data_normalization.md
 """
